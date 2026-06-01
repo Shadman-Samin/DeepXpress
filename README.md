@@ -10,7 +10,7 @@ Detects faces with YuNet (DNN), aligns with 5-point landmarks, and classifies
 
 ### Desktop App (Windows)
 
-[Download DeepXpress.exe (75 MB)](https://mega.nz/file/ho0EULDC#1RDr6-o9PRtihOJOYQChgSr0MopfwybUjPJcrCnAsA4)
+<a href="https://mega.nz/file/ho0EULDC#1RDr6-o9PRtihOJOYQChgSr0MopfwybUjPJcrCnAsA4" target="_blank">Download DeepXpress.exe (75 MB)</a>
 
 Double-click and go. Models auto-download on first launch.
 
