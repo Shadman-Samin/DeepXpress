@@ -1,0 +1,44 @@
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile
+    container_name: deepxpress-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../models:/app/models
+      - ../data:/app/data
+    environment:
+      - DEEPXPRESS_DEVICE=cpu
+    command: uvicorn api.app:app --host 0.0.0.0 --port 8000 --reload
+
+  streamlit:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile
+    container_name: deepxpress-ui
+    ports:
+      - "8501:8501"
+    volumes:
+      - ../models:/app/models
+    environment:
+      - DEEPXPRESS_DEVICE=cpu
+    command: streamlit run ui/streamlit_app.py --server.port 8501 --server.address 0.0.0.0
+
+  training:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile
+    container_name: deepxpress-training
+    volumes:
+      - ../models:/app/models
+      - ../data:/app/data
+      - ../configs:/app/configs
+    environment:
+      - DEEPXPRESS_DEVICE=cpu
+    command: python -c "from training.trainer import Trainer; print('Training container ready')"
+    profiles:
+      - train

@@ -1,0 +1,25 @@
+model:
+  name: mobilefacenet_onnx
+  input_size: [112, 112]
+  num_classes: 7
+
+inference:
+  confidence_threshold: 0.0
+
+webcam:
+  frame_width: 1280
+  frame_height: 720
+  process_every_n: 2
+  target_fps: 30
+
+api:
+  host: 0.0.0.0
+  port: 8000
+
+ui:
+  type: streamlit
+  port: 8501
+
+logging:
+  level: INFO
+  file: logs/deepxpress.log
