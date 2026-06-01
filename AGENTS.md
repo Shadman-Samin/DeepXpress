@@ -4,27 +4,30 @@
 
 ## Project Overview
 
-DeepXpress is a Computer Vision and Deep Learning project designed to detect and classify human facial emotions from images, video streams, and real-time webcam feeds.
+DeepXpress is a Computer Vision project that detects and classifies human
+facial emotions from webcam feeds, images, and video streams in real time.
 
-The system aims to recognize common emotional states such as:
+The system recognizes 7 emotional states:
 
-* Happy
-* Sad
 * Angry
-* Fear
-* Surprise
 * Disgust
+* Fear
+* Happy
 * Neutral
+* Sad
+* Surprised
 
-The project combines computer vision techniques, facial detection, image preprocessing, and deep learning models to deliver accurate emotion predictions in real time.
+The pipeline: **YuNet face detection → 5-point landmark alignment →
+MobileFaceNet ONNX inference → temporal EMA smoothing**.
+
+Accuracy: **88.27%** on RAF-DB. Delivered as a portable Windows .exe.
 
 ---
 
 # Agent Role
 
-You are the AI Engineering Agent responsible for designing, developing, testing, documenting, and improving the DeepXpress project.
-
-Your objective is to create a production-quality facial emotion recognition system following software engineering best practices.
+You are the AI Engineering Agent responsible for designing, developing,
+testing, documenting, and improving the DeepXpress project.
 
 ---
 
@@ -32,199 +35,88 @@ Your objective is to create a production-quality facial emotion recognition syst
 
 ## 1. System Architecture
 
-Design a modular architecture consisting of:
+```
+Face Detection (YuNet) → Face Alignment → ONNX Inference → Temporal Smoothing → Display
+```
 
-* Data Collection
-* Data Preprocessing
-* Model Training
-* Model Evaluation
-* Inference Pipeline
-* Real-Time Detection
-* User Interface
-* Deployment
+Components:
+- **models/download_pretrained.py** — auto-downloads ONNX + YuNet on first run
+- **inference/onnx_predictor.py** — detection, alignment, inference, EMA smoothing
+- **ui/webcam.py** — threaded capture, 720p visualization with overlay
+- **api/app.py** — FastAPI server for remote image prediction
+- **app.py** — desktop launcher for .exe distribution
 
-All components should remain loosely coupled and maintainable.
-
----
-
-## 2. Dataset Management
-
-Responsible for:
-
-* Dataset acquisition
-* Dataset cleaning
-* Data balancing
-* Label verification
-* Train/Validation/Test split
-
-Preferred datasets:
-
-* FER2013
-* CK+
-* RAF-DB
-* AffectNet (optional)
-
-Maintain reproducibility throughout the pipeline.
+All components remain loosely coupled and maintainable.
 
 ---
 
-## 3. Data Preprocessing
+## 2. Model Pipeline
 
-Implement:
+### Face Detection
+- **YuNet DNN** from OpenCV Zoo (2023 March version)
+- Handles angles, occlusions, multi-face
+- Returns bounding box + 5 facial landmarks
 
-* Face detection
-* Face cropping
-* Grayscale conversion (if required)
-* Image resizing
-* Normalization
-* Data augmentation
+### Face Alignment
+- Similarity transform warps landmarks to canonical 112×112
+- Same alignment the MobileFaceNet model was trained with
 
-Suggested augmentations:
+### Emotion Classification
+- **MobileFaceNet ONNX** (88.27% on RAF-DB)
+- Single forward pass per face (batch=1)
+- Input: 1×3×112×112, normalized (0.5, 0.5)
 
-* Horizontal flip
-* Rotation
-* Brightness adjustment
-* Zoom
-* Random shifts
-
----
-
-## 4. Model Development
-
-Build and experiment with:
-
-### Baseline Models
-
-* CNN
-* Deep CNN
-
-### Advanced Models
-
-* ResNet
-* EfficientNet
-* MobileNet
-* Vision Transformer (future enhancement)
-
-Responsibilities include:
-
-* Hyperparameter tuning
-* Architecture experimentation
-* Performance optimization
+### Temporal Smoothing
+- EMA: `0.4 * raw + 0.6 * previous`
+- IoU-based face tracking across frames
+- Prevents emotion flickering
 
 ---
 
-## 5. Training Pipeline
+## 3. Inference Pipeline
 
-Ensure:
-
-* Reproducible training
-* Checkpoint saving
-* Early stopping
-* Learning rate scheduling
-* Model versioning
-
-Track:
-
-* Accuracy
-* Precision
-* Recall
-* F1 Score
-* Confusion Matrix
+1. Capture 720p frame from webcam
+2. Run YuNet face detection
+3. For each face: extract 5 landmarks, similarity-warp to 112×112
+4. Preprocess: BGR→RGB, normalize to [-1, 1]
+5. Run ONNX inference → softmax → 7-class probs
+6. Apply EMA smoothing (tracked by IoU)
+7. Render bounding boxes + emotion labels + FPS + face count
 
 ---
 
-## 6. Evaluation
+## 4. User Interface
 
-Perform comprehensive evaluation using:
-
-* Validation Dataset
-* Test Dataset
-* Cross Validation (optional)
-
-Generate:
-
-* Performance reports
-* Classification reports
-* Error analysis
-
----
-
-## 7. Real-Time Emotion Detection
-
-Implement:
-
-### Input Sources
-
-* Webcam
-* Video Files
-* Images
-
-### Pipeline
-
-1. Detect Face
-2. Extract Face Region
-3. Preprocess Image
-4. Run Model Inference
-5. Predict Emotion
-6. Display Result
-
-Target:
-
-* Low latency
-* High accuracy
-* Stable performance
-
----
-
-## 8. User Interface
-
-Possible implementations:
-
-### Desktop
-
-* Tkinter
-* PyQt
+### Desktop (default)
+- OpenCV `cv2.imshow` with custom overlay
+- 720p live feed, per-emotion color-coded boxes
+- FPS counter, face count
+- Press `q` or click X to exit
 
 ### Web
-
-* FastAPI
-* Streamlit
-
-UI should display:
-
-* Live camera feed
-* Bounding boxes
-* Emotion labels
-* Confidence scores
+- **FastAPI** — `/predict/image` endpoint
+- **Streamlit** — image upload with visualization
 
 ---
 
-## 9. Deployment
+## 5. Deployment
 
-Support deployment through:
+### Distributable
+- PyInstaller `--onefile --noconsole` → single `DeepXpress.exe` (75 MB)
+- Models auto-download on first run (stored alongside .exe)
+- Zero configuration, double-click to launch
 
-* Local machine
-* Docker
-* FastAPI API
-* Cloud platforms
-
-Deployment goals:
-
-* Scalability
-* Reliability
-* Easy setup
+### API
+- `python main.py api` → FastAPI on port 8000
+- Docker-ready
 
 ---
 
-## 10. Documentation
+## 6. Documentation
 
 Maintain:
-
-* README.md
-* API Documentation
-* Training Guide
-* Installation Guide
-* Deployment Guide
+- **README.md** — quick start, usage, benchmarks
+- **AGENT.md** — architecture, workflow, conventions
 
 Documentation must remain updated with code changes.
 
@@ -234,99 +126,95 @@ Documentation must remain updated with code changes.
 
 ## Python Style
 
-Follow:
-
-* PEP 8
-* Type hints
-* Modular structure
-* Meaningful naming conventions
-
----
+- PEP 8
+- Type hints
+- Modular structure
+- Meaningful naming
 
 ## Project Structure
 
+```
 deepxpress/
-│
-├── data/
-├── notebooks/
-├── models/
-├── training/
+├── app.py                     # Desktop launcher for .exe
+├── main.py                    # CLI entry point
 ├── inference/
-├── deployment/
-├── api/
+│   ├── __init__.py
+│   └── onnx_predictor.py     # Core inference pipeline
 ├── ui/
-├── tests/
-├── docs/
+│   ├── __init__.py
+│   ├── webcam.py             # Real-time visualization
+│   └── streamlit_app.py      # Streamlit dashboard
+├── api/
+│   ├── __init__.py
+│   └── app.py                # FastAPI server
+├── models/
+│   ├── __init__.py
+│   └── download_pretrained.py  # Auto-download models
 ├── configs/
-├── assets/
-│
+│   ├── __init__.py
+│   ├── config.py             # Configuration handler
+│   └── config.yaml           # Settings
+├── scripts/
+│   └── build.py              # PyInstaller build script
+├── tests/
+│   ├── test_onnx_predictor.py
+│   ├── test_config.py
+│   └── test_api.py
+├── app.py
 ├── main.py
 ├── requirements.txt
 ├── README.md
-└── AGENT.md
+├── AGENT.md
+└── pyproject.toml
+```
 
 ---
 
 # Testing Requirements
 
 Create tests for:
+- ONNX inference pipeline (softmax, preprocessing, predict)
+- Configuration loading
+- API endpoints
 
-* Data pipeline
-* Model loading
-* Inference pipeline
-* API endpoints
-* Real-time detection modules
+Run: `python -m pytest tests/ -v`
 
-Maintain stable functionality across updates.
+Minimum: **16 tests passing**.
 
 ---
 
 # Performance Targets
 
-Minimum Targets:
-
-| Metric         | Target   |
+| Metric         | Current  |
 | -------------- | -------- |
-| Accuracy       | > 70%    |
-| F1 Score       | > 0.70   |
-| Inference Time | < 100 ms |
-| FPS            | > 15     |
-
-Stretch Goals:
-
-| Metric   | Target |
-| -------- | ------ |
-| Accuracy | > 85%  |
-| F1 Score | > 0.85 |
-| FPS      | > 30   |
+| Accuracy       | **88.27%** (RAF-DB) |
+| Inference Time | < 20 ms  |
+| FPS            | > 20     |
 
 ---
 
 # Future Enhancements
 
-* Emotion trend analysis
-* Multi-face emotion detection
-* Emotion analytics dashboard
-* Mobile deployment
-* ONNX optimization
-* TensorRT acceleration
-* Transformer-based emotion recognition
-* Multimodal emotion recognition (face + voice)
+- Emotion trend analysis over time
+- Emotion analytics dashboard
+- Mobile deployment (ONNX is already mobile-friendly)
+- TensorRT acceleration
+- Multimodal emotion recognition (face + voice)
 
 ---
 
 # Success Criteria
 
 The project is considered successful when:
-
-* Facial emotions are accurately classified.
-* Real-time webcam inference functions reliably.
-* The codebase is maintainable and well documented.
-* Deployment can be completed with minimal setup.
-* New datasets and models can be integrated easily.
+- Facial emotions are accurately classified (88%+).
+- Real-time webcam inference runs at 20+ FPS.
+- Desktop .exe launches without any setup.
+- Codebase is maintainable, tested, and well documented.
 
 ---
 
 # Mission Statement
 
-DeepXpress aims to make emotion recognition accessible, accurate, and deployable through modern computer vision and deep learning techniques while maintaining clean architecture, scalability, and engineering excellence.
+DeepXpress makes emotion recognition accessible, accurate, and deployable
+through modern computer vision and ONNX runtime, with a focus on clean
+architecture and zero-friction deployment.
